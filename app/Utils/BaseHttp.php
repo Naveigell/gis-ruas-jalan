@@ -46,6 +46,19 @@ class BaseHttp
     }
 
     /**
+     * Base HTTP delete request
+     *
+     * @param $endpoint
+     * @param array $query
+     * @param array $headers
+     * @return \GuzzleHttp\Promise\PromiseInterface|\Illuminate\Http\Client\Response
+     */
+    public function delete($endpoint, $query = [], $headers = [])
+    {
+        return $this->http($headers)->delete($endpoint, $query);
+    }
+
+    /**
      * Create HTTP client
      *
      * @param $headers

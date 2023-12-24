@@ -138,11 +138,16 @@ class RoadController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\Road  $road
-     * @return \Illuminate\Http\Response
+     * @param  $id
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Http\RedirectResponse|\Illuminate\Http\Response|\Illuminate\Routing\Redirector
      */
-    public function destroy(Road $road)
+    public function destroy($id)
     {
-        //
+        $http = new GISHttp();
+        $http->setToken(Session::get('token'));
+
+        $response = $http->deleteRoad($id);
+
+        return redirect(route('roads.index'))->with('success', 'Berhasil menghapus jalan');
     }
 }

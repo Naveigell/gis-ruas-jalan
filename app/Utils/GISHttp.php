@@ -31,6 +31,17 @@ class GISHttp extends BaseHttp
     }
 
     /**
+     * Delete road
+     *
+     * @param $id
+     * @return array|mixed
+     */
+    public function deleteRoad($id)
+    {
+        return $this->delete(self::ENDPOINT . "/api/ruasjalan/{$id}", [], ["Authorization" => "Bearer {$this->token}"])->json();
+    }
+
+    /**
      * Get list of road
      *
      * @return array|mixed
