@@ -63,6 +63,16 @@ class GISHttp extends BaseHttp
     }
 
     /**
+     * Check user if had login or not
+     *
+     * @return array|mixed
+     */
+    public function checkUser()
+    {
+        return $this->get(self::ENDPOINT . '/api/user', [], ["Authorization" => "Bearer {$this->token}"])->json();
+    }
+
+    /**
      * Login method for GIS
      *
      * @param $payload
@@ -71,6 +81,17 @@ class GISHttp extends BaseHttp
     public function login($payload)
     {
         return $this->post(self::ENDPOINT . '/api/login', $payload)->json();
+    }
+
+    /**
+     * Login method for GIS
+     *
+     * @param $payload
+     * @return array|mixed
+     */
+    public function register($payload)
+    {
+        return $this->post(self::ENDPOINT . '/api/register', $payload)->json();
     }
 
     /**

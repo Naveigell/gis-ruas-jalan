@@ -24,7 +24,7 @@
                 @enderror
             </div>
             <br>
-            <span class="text-danger text"><a href="{{ route('login.index') }}" class="">Register</a></span>
+            <span class="text-danger text"><a href="{{ route('register.index') }}" class="">Register</a></span>
             <br>
             <br>
             <button type="submit" class="btn btn-primary">Submit</button>
