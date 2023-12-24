@@ -66,7 +66,7 @@ class RoadController extends Controller
         $http = new GISHttp();
         $http->setToken(Session::get('token'));
 
-        $response = $http->createRoad($request->all());
+        $response = $http->createRoad($request->validated());
 
         return redirect(route('roads.index'))->with('success', 'Berhasil membuat jalan');
     }
@@ -85,24 +85,54 @@ class RoadController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Road  $road
-     * @return \Illuminate\Http\Response
+     * @param  $id
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
-    public function edit(Road $road)
+    public function edit($id)
     {
-        //
+        $http = new GISHttp();
+        $http->setToken(Session::get('token'));
+
+        $response     = $http->listProvince();
+        $villages     = Village::hydrate($response['desa']);
+        $subDistricts = Subdistrict::hydrateWithRelations($response['kecamatan'], [['name' => 'villages', 'foreign_key' => 'kec_id', 'data' => $villages]]);
+        $regencies    = Regency::hydrateWithRelations($response['kabupaten'], [['name' => 'subdistricts', 'foreign_key' => 'kab_id', 'data' => $subDistricts]]);
+        $provinces    = Province::hydrateWithRelations($response['provinsi'], [['name' => 'regencies', 'foreign_key' => 'prov_id', 'data' => $regencies]]);
+
+        $existingRoads  = ExistingRoad::hydrate($http->listExistingRoad()['eksisting']);
+        $roadConditions = RoadCondition::hydrate($http->listRoadCondition()['eksisting']);
+        $roadTypes      = RoadType::hydrate($http->listRoadType()['eksisting']);
+
+        $road = new Road($http->getRoadById($id)['ruasjalan']);
+
+        $village     = $villages->where('id', $road->desa_id)->first();
+        $subDistrict = $subDistricts->where('id', $village->kec_id)->first();
+        $regency     = $regencies->where('id', $subDistrict->kab_id)->first();
+        $province    = $provinces->where('id', $regency->prov_id)->first();
+
+        return view('pages.roads.form',
+            compact(
+                'road', 'provinces', 'existingRoads', 'roadConditions',
+                'roadTypes', 'village', 'subDistrict', 'regency', 'province',
+            )
+        );
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param Request $request
-     * @param  \App\Models\Road  $road
-     * @return \Illuminate\Http\Response
+     * @param RoadRequest $request
+     * @param $id
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function update(Request $request, Road $road)
+    public function update(RoadRequest $request, $id)
     {
-        //
+        $http = new GISHttp();
+        $http->setToken(Session::get('token'));
+
+        $response = $http->updateRoad($id, $request->validated());
+
+        return redirect(route('roads.index'))->with('success', 'Berhasil mengubah jalan');
     }
 
     /**

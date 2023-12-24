@@ -18,6 +18,7 @@ class BaseHttp
     {
         return $this->http($headers)->post($endpoint, $payload);
     }
+
     /**
      * Base HTTP get request
      *
@@ -29,6 +30,19 @@ class BaseHttp
     public function get($endpoint, $query = [], $headers = [])
     {
         return $this->http($headers)->get($endpoint, $query);
+    }
+
+    /**
+     * Base HTTP get request
+     *
+     * @param $endpoint
+     * @param array $query
+     * @param array $headers
+     * @return \GuzzleHttp\Promise\PromiseInterface|\Illuminate\Http\Client\Response
+     */
+    public function put($endpoint, $query = [], $headers = [])
+    {
+        return $this->http($headers)->put($endpoint, $query);
     }
 
     /**

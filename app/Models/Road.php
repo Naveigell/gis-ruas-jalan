@@ -10,7 +10,7 @@ class Road extends Model
     use HasFactory;
 
     protected $fillable = [
-        'paths', 'desa_id', 'kode_ruas', 'panjang', 'lebar', 'eksisting_id',
+        'paths', 'desa_id', 'nama_ruas', 'kode_ruas', 'panjang', 'lebar', 'eksisting_id',
         'kondisi_id', 'jenisjalan_id', 'keterangan',
     ];
 }

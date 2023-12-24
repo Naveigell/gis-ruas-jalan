@@ -18,9 +18,37 @@ class GISHttp extends BaseHttp
         return $this->post(self::ENDPOINT . '/api/ruasjalan', $payload, ["Authorization" => "Bearer {$this->token}"])->json();
     }
 
+    /**
+     * Update road
+     *
+     * @param $id
+     * @param $payload
+     * @return array|mixed
+     */
+    public function updateRoad($id, $payload)
+    {
+        return $this->put(self::ENDPOINT . "/api/ruasjalan/{$id}", $payload, ["Authorization" => "Bearer {$this->token}"])->json();
+    }
+
+    /**
+     * Get list of road
+     *
+     * @return array|mixed
+     */
     public function listRoad()
     {
         return $this->get(self::ENDPOINT . '/api/ruasjalan', [], ["Authorization" => "Bearer {$this->token}"])->json();
+    }
+
+    /**
+     * Get road by id
+     *
+     * @param $id
+     * @return array|mixed
+     */
+    public function getRoadById($id)
+    {
+        return $this->get(self::ENDPOINT . "/api/ruasjalan/{$id}", [], ["Authorization" => "Bearer {$this->token}"])->json();
     }
 
     /**

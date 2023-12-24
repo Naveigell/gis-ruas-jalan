@@ -20,9 +20,10 @@
 
 @section('section')
     <div class="container">
-        <form action="{{ route('roads.store') }}" method="post">
+        <form action="{{ @$road ? route('roads.update', request()->route('road')) : route('roads.store') }}" method="post">
             @csrf
-            <h2>Buat Jalan</h2>
+            @method(@$road ? 'PUT' : 'POST')
+            <h2>{{ @$road ? 'Ubah' : 'Buat' }} Jalan</h2>
             <div class="mb-3">
                 <label for="province" class="form-label">Provinsi</label>
                 <select name="provinsi" id="province" class="form-control">
@@ -52,7 +53,7 @@
                 <select name="eksisting_id" id="existing-road" class="form-control">
                     <option value="">-- Nothing Selected --</option>
                     @foreach($existingRoads as $existingRoad)
-                        <option value="{{ $existingRoad->id }}">{{ $existingRoad->eksisting }}</option>
+                        <option @if(@$road && $road->eksisting_id == $existingRoad->id) selected @endif value="{{ $existingRoad->id }}">{{ $existingRoad->eksisting }}</option>
                     @endforeach
                 </select>
             </div>
@@ -61,7 +62,7 @@
                 <select name="kondisi_id" id="condition-road" class="form-control">
                     <option value="">-- Nothing Selected --</option>
                     @foreach($roadConditions as $roadCondition)
-                        <option value="{{ $roadCondition->id }}">{{ $roadCondition->kondisi }}</option>
+                        <option @if(@$road && $road->kondisi_id == $roadCondition->id) selected @endif value="{{ $roadCondition->id }}">{{ $roadCondition->kondisi }}</option>
                     @endforeach
                 </select>
             </div>
@@ -70,31 +71,31 @@
                 <select name="jenisjalan_id" id="type-road" class="form-control">
                     <option value="">-- Nothing Selected --</option>
                     @foreach($roadTypes as $roadType)
-                        <option value="{{ $roadType->id }}">{{ $roadType->jenisjalan }}</option>
+                        <option @if(@$road && $road->jenisjalan_id == $roadType->id) selected @endif value="{{ $roadType->id }}">{{ $roadType->jenisjalan }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="mb-3">
                 <label for="road-code" class="form-label">Kode Ruas</label>
-                <input type="text" name="kode_ruas" class="form-control" id="road-code" placeholder="Cth: R1">
+                <input type="text" name="kode_ruas" class="form-control" id="road-code" placeholder="Cth: R1" value="{{ @$road ? $road->kode_ruas : '' }}">
             </div>
             <div class="mb-3">
                 <label for="road-name" class="form-label">Nama Ruas</label>
-                <input type="text" name="nama_ruas" class="form-control" id="road-name" placeholder="Cth: 10 - 12">
+                <input type="text" name="nama_ruas" class="form-control" id="road-name" placeholder="Cth: 10 - 12" value="{{ @$road ? $road->nama_ruas : '' }}">
             </div>
             <div class="mb-3">
                 <label for="road-length" class="form-label">Panjang Ruas</label>
-                <input type="number" name="panjang" class="form-control" id="road-length" placeholder="Cth: 105.333 (dalam meter)">
+                <input type="number" name="panjang" class="form-control" id="road-length" placeholder="Cth: 105.333 (dalam meter)" value="{{ @$road ? $road->panjang : '' }}">
             </div>
             <div class="mb-3">
                 <label for="width-length" class="form-label">Lebar Ruas</label>
-                <input type="number" name="lebar" class="form-control" id="width-length" placeholder="Cth: 2 (dalam meter)">
+                <input type="number" name="lebar" class="form-control" id="width-length" placeholder="Cth: 2 (dalam meter)" value="{{ @$road ? $road->lebar : '' }}">
             </div>
             <div class="mb-3">
                 <label for="description" class="form-label">Keterangan</label>
-                <textarea name="keterangan" class="form-control" id="description" rows="3"></textarea>
+                <textarea name="keterangan" class="form-control" id="description" rows="3">{{ @$road ? $road->keterangan : '' }}</textarea>
             </div>
-            <input type="hidden" name="paths" id="hidden-paths">
+            <input type="hidden" name="paths" id="hidden-paths" value="{{ @$road ? $road->paths : '' }}">
             <div class="container mb-5" id="mapid"></div>
             <input type="hidden" class="" id="hidden-province" value='@json($provinces)'>
             <button class="btn btn-primary" type="submit">Simpan</button>
@@ -177,6 +178,37 @@
             }
         });
     </script>
+    @if(@$road)
+        <input type="hidden" id="paths" value="{{ $road->paths }}">
+        <script>
+            var paths = L.PolylineUtil.decode($('#paths').val());
+
+            if (paths.length >= 2) {
+                // push the first and the last coordinates to markers
+                markers.push({
+                    latitude: paths[0][0],
+                    longitude: paths[0][1],
+                    marker: L.marker([paths[0][0], paths[0][1]]).addTo(map)
+                });
+
+                markers.push({
+                    latitude: paths[paths.length - 1][0],
+                    longitude: paths[paths.length - 1][1],
+                    marker: L.marker([paths[paths.length - 1][0], paths[paths.length - 1][1]]).addTo(map)
+                });
+
+                // add routing
+                control = L.Routing.control({
+                    waypoints: [
+                        L.latLng(paths[0][0], paths[0][1]),
+                        L.latLng(paths[paths.length - 1][0], paths[paths.length - 1][1]),
+                    ],
+                    show: false
+                });
+                control.addTo(map);
+            }
+        </script>
+    @endif
     <script>
         /**
          * A function to insert data into select option
@@ -207,6 +239,20 @@
             }
         }
 
+        /**
+         * Remove all option from element
+         *
+         * @param element {HTMLElement}
+         */
+        function removeAllOptionFromElement(element) {
+            $(element).find('option').each(function (index, element) {
+                if ($(element).val() === '') {
+                    return;
+                }
+
+                $(this).remove();
+            });
+        }
     </script>
     <script>
         var provinceComponent    = $('#province');
@@ -231,6 +277,8 @@
             var target       = $(e.target).find('option:selected');
             var subDistricts = target.data('subdistricts');
 
+            removeAllOptionFromElement(subdistrictComponent);
+
             // insert data into subdistrict (kecamatan)
             insertDataIntoSelectOptionComponent(subdistrictComponent, subDistricts, 'kecamatan', 'villages');
         });
@@ -239,9 +287,29 @@
             var target   = $(e.target).find('option:selected');
             var villages = target.data('villages');
 
+            removeAllOptionFromElement(villageComponent);
+
             // insert data into village (desa)
             insertDataIntoSelectOptionComponent(villageComponent, villages, 'desa');
         });
 
     </script>
+    @if(@$road)
+        <input type="hidden" id="hidden-road-id" value="{{ $province->id }}">
+        <input type="hidden" id="hidden-regency-id" value="{{ $regency->id }}">
+        <input type="hidden" id="hidden-sub-district-id" value="{{ $subDistrict->id }}">
+        <input type="hidden" id="hidden-village-id" value="{{ $village->id }}">
+        <script>
+            // trigger all id for component
+            var provinceId    = $('#hidden-road-id').val();
+            var regencyId     = $('#hidden-regency-id').val();
+            var subDistrictId = $('#hidden-sub-district-id').val();
+            var villageId     = $('#hidden-village-id').val();
+
+            provinceComponent.val(provinceId).trigger('change');
+            regencyComponent.val(regencyId).trigger('change');
+            subdistrictComponent.val(subDistrictId).trigger('change');
+            villageComponent.val(villageId).trigger('change');
+        </script>
+    @endif
 @endpush
