@@ -7,9 +7,8 @@
             resize: none;
         }
     </style>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"
-          integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ=="
-          crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css">
     <style>
         #mapid { min-height: 500px; }
         .leaflet-control-container .leaflet-routing-container-hide {
@@ -106,27 +105,12 @@
 
 @push('script')
     <!-- Make sure you put this AFTER Leaflet's CSS -->
-    <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"
-            integrity="sha512-/Nsx9X4HebavoBvEBuyp3I7od5tA0UzAxs+j83KgC8PU0kgB4XiK4Lfe4y4cgBtaRJQEIFCW+oC506aPT2L1zw=="
-            crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
     <script src="{{ asset('assets/js/PolylineUtil.encoded.js') }}"></script>
     <script>
-        /**
-         * Add marker
-         *
-         * @param latitude {Number}
-         * @param longitude {Number}
-         */
-        function pushMarker(latitude, longitude) {
-            var marker = L.marker([latitude, longitude]).addTo(map);
-
-            markers.push({
-                marker: marker,
-                latitude: latitude,
-                longitude: longitude
-            });
-        }
+        var lastLayer = null;
     </script>
     <script>
         // add marker and set current default view into this lat lang
@@ -134,79 +118,75 @@
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        var markers = [];
-        var control;
+        var editableLayers = new L.FeatureGroup();
 
-        map.on('click', function(e) {
+        map.addLayer(editableLayers);
 
-            let latitude = e.latlng.lat.toString().substring(0, 15);
-            let longitude = e.latlng.lng.toString().substring(0, 15);
+        var options = {
+            position: 'topright',
+            draw: {
+                polyline: {
+                    shapeOptions: {
+                        color: 'red',
+                        weight: 3,
+                        opacity: 0.5,
+                        smoothFactor: 1
+                    }
+                },
+                // remove all shape except polyline
+                circle: false,
+                circlemarker: false,
+                marker: false,
+                rectangle: false,
+                polygon: false,
+            },
+            edit: false
+        };
 
-            if (markers.length < 2) {
-                // push marker if markers length is less than 2
-                pushMarker(latitude, longitude);
+        // Initialise the draw control and pass it the FeatureGroup of editable layers
+        var drawControl = new L.Control.Draw(options);
+        map.addControl(drawControl);
 
-                if (markers.length === 2) {
-                    // if markers already 2, then add routing between markers
-                    control = L.Routing.control({
-                        waypoints: [
-                            L.latLng(markers[0].latitude, markers[0].longitude),
-                            L.latLng(markers[1].latitude, markers[1].longitude)
-                        ],
-                        show: false
-                    });
+        var editableLayers = new L.FeatureGroup();
+        map.addLayer(editableLayers);
 
-                    control.addTo(map);
+        map.on('draw:created', function(e) {
+            var layer = e.layer;
 
-                    control.on('routesfound', function (e) {
-                        var coordinates = e.routes[0].coordinates;
-
-                        $('#hidden-paths').val(L.PolylineUtil.encode(coordinates));
-                    })
-                }
-            } else {
-
-                // remove all component that we bind into map
-                map.removeControl(control);
-                map.removeLayer(markers[0].marker);
-                map.removeLayer(markers[1].marker);
-                $('#hidden-paths').val('');
-
-                markers = [];
-
-                pushMarker(latitude, longitude);
+            // remove last layer
+            // if user create a new line, we remove latest layer, to make only one polyline inside map
+            if (lastLayer) {
+                map.removeLayer(lastLayer);
+                lastLayer = layer;
             }
+
+            $('#hidden-paths').val(L.PolylineUtil.encode(layer._latlngs));
+
+            editableLayers.addLayer(layer);
         });
     </script>
+
     @if(@$road)
-        <input type="hidden" id="paths" value="{{ $road->paths }}">
         <script>
-            var paths = L.PolylineUtil.decode($('#paths').val());
+            // create a polyline given by api
+            var coordinates = [];
+            var polylines = L.PolylineUtil.decode($('#hidden-paths').val());
 
-            if (paths.length >= 2) {
-                // push the first and the last coordinates to markers
-                markers.push({
-                    latitude: paths[0][0],
-                    longitude: paths[0][1],
-                    marker: L.marker([paths[0][0], paths[0][1]]).addTo(map)
-                });
-
-                markers.push({
-                    latitude: paths[paths.length - 1][0],
-                    longitude: paths[paths.length - 1][1],
-                    marker: L.marker([paths[paths.length - 1][0], paths[paths.length - 1][1]]).addTo(map)
-                });
-
-                // add routing
-                control = L.Routing.control({
-                    waypoints: [
-                        L.latLng(paths[0][0], paths[0][1]),
-                        L.latLng(paths[paths.length - 1][0], paths[paths.length - 1][1]),
-                    ],
-                    show: false
-                });
-                control.addTo(map);
+            for (var polyline of polylines) {
+                coordinates.push(new L.LatLng(polyline[0], polyline[1]));
             }
+
+            // create default polyline and initialize it into last layer
+            var Polyline = new L.Polyline(coordinates, {
+                color: 'red',
+                weight: 3,
+                opacity: 0.5,
+                smoothFactor: 1
+            });
+
+            map.addLayer(Polyline);
+
+            lastLayer = Polyline;
         </script>
     @endif
     <script>
