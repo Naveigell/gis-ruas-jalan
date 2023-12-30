@@ -52,7 +52,12 @@ class RoadController extends Controller
         $roadConditions = RoadCondition::hydrate($http->listRoadCondition()['eksisting']);
         $roadTypes      = RoadType::hydrate($http->listRoadType()['eksisting']);
 
-        return view('pages.roads.form', compact('provinces', 'existingRoads', 'roadConditions', 'roadTypes'));
+        $roads = Road::hydrate($http->listRoad()['ruasjalan']);
+
+        // take all paths to draw the road except current road
+        $paths = $roads->pluck('paths');
+
+        return view('pages.roads.form', compact('provinces', 'existingRoads', 'roadConditions', 'roadTypes', 'paths'));
     }
 
     /**
@@ -103,7 +108,11 @@ class RoadController extends Controller
         $roadConditions = RoadCondition::hydrate($http->listRoadCondition()['eksisting']);
         $roadTypes      = RoadType::hydrate($http->listRoadType()['eksisting']);
 
-        $road = new Road($http->getRoadById($id)['ruasjalan']);
+        $roads = Road::hydrate($http->listRoad()['ruasjalan']);
+        $road  = new Road($http->getRoadById($id)['ruasjalan']);
+
+        // take all paths to draw the road except current road
+        $paths = $roads->whereNotIn('id', [$road->id])->pluck('paths');
 
         $village     = $villages->where('id', $road->desa_id)->first();
         $subDistrict = $subDistricts->where('id', $village->kec_id)->first();
@@ -113,7 +122,7 @@ class RoadController extends Controller
         return view('pages.roads.form',
             compact(
                 'road', 'provinces', 'existingRoads', 'roadConditions',
-                'roadTypes', 'village', 'subDistrict', 'regency', 'province',
+                'roadTypes', 'village', 'subDistrict', 'regency', 'province', 'paths'
             )
         );
     }

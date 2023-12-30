@@ -100,6 +100,9 @@
             <button class="btn btn-primary" type="submit">Simpan</button>
             <br><br>
         </form>
+        @if(@$paths)
+            <input type="hidden" id="paths" value='@json($paths)'>
+        @endif
     </div>
 @endsection
 
@@ -119,8 +122,10 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         var editableLayers = new L.FeatureGroup();
-
         map.addLayer(editableLayers);
+
+        var drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
 
         var options = {
             position: 'topright',
@@ -140,15 +145,15 @@
                 rectangle: false,
                 polygon: false,
             },
-            edit: false
+            edit:  {
+                featureGroup: editableLayers,
+                remove: true,
+            },
         };
 
         // Initialise the draw control and pass it the FeatureGroup of editable layers
         var drawControl = new L.Control.Draw(options);
         map.addControl(drawControl);
-
-        var editableLayers = new L.FeatureGroup();
-        map.addLayer(editableLayers);
 
         map.on('draw:created', function(e) {
             var layer = e.layer;
@@ -159,6 +164,15 @@
                 map.removeLayer(lastLayer);
                 lastLayer = layer;
             }
+
+            $('#hidden-paths').val(L.PolylineUtil.encode(layer._latlngs));
+
+            editableLayers.addLayer(layer);
+        });
+
+        map.on('draw:edited', function(e) {
+            var layers = e.layers.getLayers();
+            var layer  = layers[0];
 
             $('#hidden-paths').val(L.PolylineUtil.encode(layer._latlngs));
 
@@ -189,6 +203,30 @@
             lastLayer = Polyline;
         </script>
     @endif
+    @if(@$paths)
+        <script>
+            var hiddenPolylines = JSON.parse($('#paths').val());
+
+            for (var hiddenPolyline of hiddenPolylines) {
+                var decode = L.PolylineUtil.decode(hiddenPolyline);
+
+                var Polyline = new L.Polyline(decode, {
+                    color: 'blue',
+                    weight: 3,
+                    opacity: 0.5,
+                    smoothFactor: 1
+                });
+
+                map.addLayer(Polyline);
+            }
+        </script>
+    @endif
+    <script>
+        // add last layer to editableLayer to make the latest layer editable
+        if (lastLayer) {
+            editableLayers.addLayer(lastLayer);
+        }
+    </script>
     <script>
         /**
          * A function to insert data into select option
